@@ -1,8 +1,8 @@
 import type { Doklad, PeriodSummary } from './types';
 
-// ⚠ Nastav na IP adresu počítače s backendem, aby na něj telefon dosáhl.
-// Např. 'http://192.168.1.10:3000'. localhost funguje jen v simulátoru/webu.
-export const API_BASE_URL = 'http://192.168.1.10:3000';
+// Produkční backend na Railway. Pro lokální vývoj přepiš na IP adresu počítače
+// s backendem (např. 'http://192.168.1.10:3000') — localhost funguje jen v simulátoru/webu.
+export const API_BASE_URL = 'https://uctenkomat-production.up.railway.app';
 
 /** Nahraje fotku dokladu, backend ji extrahuje a vrátí rozpoznaný doklad. */
 export async function uploadDoklad(imageUri: string): Promise<Doklad> {
