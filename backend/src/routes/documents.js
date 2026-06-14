@@ -7,7 +7,7 @@ import { extractDoklad } from '../services/anthropic.js';
 import { lookupIco } from '../services/ares.js';
 import { decodeSpaydFromImage } from '../services/qr.js';
 import { periodKey } from '../services/period.js';
-import { addDocument, updateDocument, getDocument, UPLOADS_DIR } from '../store.js';
+import { addDocument, updateDocument, getDocument, UPLOADS_DIR } from '../store/index.js';
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -71,7 +71,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
       createdAt: new Date().toISOString(),
       data,
     };
-    addDocument(doc);
+    await addDocument(doc);
     res.status(201).json(doc);
   } catch (err) {
     console.error('Extrakce selhala:', err);
@@ -80,21 +80,21 @@ router.post('/', upload.single('photo'), async (req, res) => {
 });
 
 // PATCH /api/documents/:id — ulož opravy z kontrolní obrazovky
-router.patch('/:id', (req, res) => {
+router.patch('/:id', async (req, res) => {
   const patch = {};
   if (req.body.data) patch.data = req.body.data;
   if (req.body.reviewed != null) patch.reviewed = req.body.reviewed;
   // období se může změnit, pokud uživatel opravil datum
   if (req.body.data?.datum_vystaveni) patch.period = periodKey(req.body.data.datum_vystaveni);
 
-  const doc = updateDocument(req.params.id, patch);
+  const doc = await updateDocument(req.params.id, patch);
   if (!doc) return res.status(404).json({ error: 'Doklad nenalezen.' });
   res.json(doc);
 });
 
 // GET /api/documents/:id
-router.get('/:id', (req, res) => {
-  const doc = getDocument(req.params.id);
+router.get('/:id', async (req, res) => {
+  const doc = await getDocument(req.params.id);
   if (!doc) return res.status(404).json({ error: 'Doklad nenalezen.' });
   res.json(doc);
 });

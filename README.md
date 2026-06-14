@@ -52,6 +52,7 @@ MVP scaffold. Funkční kostra — viz `docs/` pro detaily extrakce a [TODO](#to
 
 - [x] Dekódování QR Platby (SPAYD) přímo z obrázku — `backend/src/services/qr.js`
 - [x] Odesílání e‑mailem přes SMTP — `backend/src/services/email.js` (zapne se po vyplnění SMTP v `.env`)
-- [ ] Trvalé úložiště (teď JSON soubor + lokální `uploads/`) → S3 + DB
+- [x] Postgres úložiště — `backend/src/store/` (zapne se po nastavení `DATABASE_URL`, jinak JSON fallback)
+- [ ] Obrázky do S3 (teď lokální `uploads/`)
 - [ ] Autentizace uživatele
 - [ ] Test na reálných vybledlých termopaprových účtenkách (Shell/Albert) — nejhorší případ

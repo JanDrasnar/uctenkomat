@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import path from 'node:path';
-import { listPeriods, listByPeriod, markPeriodSent, EXPORTS_DIR } from '../store.js';
+import { listPeriods, listByPeriod, markPeriodSent, EXPORTS_DIR } from '../store/index.js';
 import { generatePeriodPdf } from '../services/pdf.js';
 import { generateCsv } from '../services/csv.js';
 import { periodLabel } from '../services/period.js';
@@ -9,23 +9,23 @@ import { sendToAccountant } from '../services/email.js';
 const router = Router();
 
 // GET /api/periods — přehled období (počet, součet, odesláno)
-router.get('/', (_req, res) => {
-  res.json(listPeriods());
+router.get('/', async (_req, res) => {
+  res.json(await listPeriods());
 });
 
 // GET /api/periods/:period — doklady v období
-router.get('/:period', (req, res) => {
+router.get('/:period', async (req, res) => {
   res.json({
     period: req.params.period,
     label: periodLabel(req.params.period),
-    documents: listByPeriod(req.params.period),
+    documents: await listByPeriod(req.params.period),
   });
 });
 
 // POST /api/periods/:period/send — vygeneruj PDF + CSV a (volitelně) pošli e-mailem
 router.post('/:period/send', async (req, res) => {
   const period = req.params.period;
-  const docs = listByPeriod(period);
+  const docs = await listByPeriod(period);
   if (docs.length === 0) {
     return res.status(400).json({ error: 'V tomto období nejsou žádné doklady.' });
   }
@@ -45,7 +45,7 @@ router.post('/:period/send', async (req, res) => {
     generateCsv(csvPath, docs);
 
     const email = await sendToAccountant({ period, pdfPath, csvPath });
-    markPeriodSent(period);
+    await markPeriodSent(period);
 
     res.json({
       ok: true,
