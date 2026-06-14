@@ -30,8 +30,9 @@ přednostně před OCR. Neshoda mezi QR a OCR = signál k upozornění uživatel
 
 Parser řetězce: [`backend/src/services/spayd.js`](../backend/src/services/spayd.js).
 
-## TODO: dekódování z obrázku
+## Dekódování z obrázku
 
-Teď máme jen parser řetězce. Dekódování QR z fotky vyžaduje načíst pixely a QR čtečku
-(např. `jimp` + `jsqr`). Krok navíc oproti MVP — proto zatím model jen příznakem
-`qr_platba_nalezena` říká, že tam QR je, a parser je připraven na string.
+Implementováno v [`backend/src/services/qr.js`](../backend/src/services/qr.js): `jimp` načte
+pixely fotky, `jsqr` najde QR kód a `parseSpayd` ho rozparsuje. Při nahrání dokladu se
+spustí automaticky — pokud QR existuje, jeho `AM` (částka) a `X-VS` přebijí OCR hodnoty
+a případná neshoda se zaznamená do `poznamka_extrakce`.

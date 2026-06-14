@@ -21,6 +21,7 @@ export interface DokladData {
   castka_celkem: number | null;
   dph_rozpis: DphRadek[];
   qr_platba_nalezena: boolean;
+  qr?: { acc?: string; am?: number; cc?: string; vs?: string; msg?: string };
   pole_ke_kontrole: string[];
   poznamka_extrakce?: string | null;
   ares_overeno?: boolean;
