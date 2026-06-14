@@ -1,0 +1,22 @@
+{
+  "name": "uctenkomat-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Účtenkomat backend — extrakce dokladů, ARES, generování PDF/CSV, odeslání účetní",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "pdfkit": "^0.15.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

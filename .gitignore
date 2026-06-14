@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Secrets / env
+.env
+.env.local
+
+# Backend runtime data (originály dokladů, exporty, DB)
+backend/uploads/
+backend/exports/
+backend/data/
+
+# Expo / RN
+.expo/
+dist/
+web-build/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
