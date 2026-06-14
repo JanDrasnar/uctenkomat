@@ -6,10 +6,16 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import type { Doklad, PeriodSummary } from '../types';
 import { getPeriod, getPeriods, sendPeriod, uploadDoklad } from '../api';
+import { getAccountantEmail } from '../settings';
 import { colors, fmtKc } from '../theme';
 import { periodLabel } from '../period';
 
-export default function HomeScreen({ onReview }: { onReview: (d: Doklad) => void }) {
+export default function HomeScreen({
+  onReview, onOpenSettings,
+}: {
+  onReview: (d: Doklad) => void;
+  onOpenSettings: () => void;
+}) {
   const [periods, setPeriods] = useState<PeriodSummary[]>([]);
   const [docs, setDocs] = useState<Doklad[]>([]);
   const [loading, setLoading] = useState(false);
@@ -63,14 +69,22 @@ export default function HomeScreen({ onReview }: { onReview: (d: Doklad) => void
 
   async function send() {
     if (!current) return;
-    Alert.alert('Odeslat účetní', `Odeslat ${current.count} dokladů za ${periodLabel(current.period)}?`, [
+    const accountantEmail = await getAccountantEmail();
+    if (!accountantEmail) {
+      Alert.alert('Chybí e-mail účetní', 'Nejdřív nastavte e-mail účetní v Nastavení.', [
+        { text: 'Zrušit', style: 'cancel' },
+        { text: 'Otevřít nastavení', onPress: onOpenSettings },
+      ]);
+      return;
+    }
+    Alert.alert('Odeslat účetní', `Odeslat ${current.count} dokladů za ${periodLabel(current.period)} na ${accountantEmail}?`, [
       { text: 'Zrušit', style: 'cancel' },
       {
         text: 'Odeslat',
         onPress: async () => {
           setBusy(true);
           try {
-            const r = await sendPeriod(current.period);
+            const r = await sendPeriod(current.period, accountantEmail);
             const msg = r.email?.sent
               ? `Odesláno účetní (${r.documents} dokladů).`
               : `Vygenerováno ${r.documents} dokladů. ${r.email?.reason ?? ''}`;
@@ -89,9 +103,14 @@ export default function HomeScreen({ onReview }: { onReview: (d: Doklad) => void
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.periodTitle}>
-          {current ? periodLabel(current.period) : 'Žádné doklady'}
-        </Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.periodTitle}>
+            {current ? periodLabel(current.period) : 'Žádné doklady'}
+          </Text>
+          <Pressable onPress={onOpenSettings} hitSlop={12}>
+            <Text style={styles.gear}>⚙</Text>
+          </Pressable>
+        </View>
         {current && (
           <Text style={styles.periodSub}>
             {current.count} dokladů · {fmtKc(current.total)}
@@ -149,6 +168,8 @@ export default function HomeScreen({ onReview }: { onReview: (d: Doklad) => void
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, padding: 16 },
   header: { marginBottom: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  gear: { fontSize: 24, color: colors.muted },
   periodTitle: { fontSize: 24, fontWeight: '700', color: colors.text },
   periodSub: { fontSize: 15, color: colors.muted, marginTop: 2 },
   captureBtn: {

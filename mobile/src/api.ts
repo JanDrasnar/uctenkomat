@@ -42,8 +42,12 @@ export async function getPeriod(period: string): Promise<{ period: string; label
   return res.json();
 }
 
-export async function sendPeriod(period: string): Promise<any> {
-  const res = await fetch(`${API_BASE_URL}/api/periods/${period}/send`, { method: 'POST' });
+export async function sendPeriod(period: string, accountantEmail?: string): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/periods/${period}/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accountantEmail }),
+  });
   if (!res.ok) throw new Error('Odeslání selhalo');
   return res.json();
 }

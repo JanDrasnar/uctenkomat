@@ -135,10 +135,11 @@ async function sendEmail(to, subject, html, attachments = []) {
  * Odešle balík dokladů (PDF + CSV) účetní na ACCOUNTANT_EMAIL.
  * @returns {Promise<{sent:boolean, provider?:string, to?:string, reason?:string}>}
  */
-export async function sendToAccountant({ period, pdfPath, csvPath }) {
-  const to = process.env.ACCOUNTANT_EMAIL;
-  if (!to) {
-    return { sent: false, reason: 'ACCOUNTANT_EMAIL nenastaven — soubory ke stažení.' };
+export async function sendToAccountant({ period, pdfPath, csvPath, to }) {
+  // E-mail účetní z aplikace (nastavení) má přednost; ACCOUNTANT_EMAIL je fallback.
+  const recipient = to || process.env.ACCOUNTANT_EMAIL;
+  if (!recipient) {
+    return { sent: false, reason: 'E-mail účetní není nastaven — soubory ke stažení.' };
   }
 
   const html = `<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f5f5f5;padding:40px 0">
@@ -154,7 +155,7 @@ export async function sendToAccountant({ period, pdfPath, csvPath }) {
     { filename: path.basename(csvPath), content: fs.readFileSync(csvPath), contentType: 'text/csv' },
   ];
 
-  const result = await sendEmail(to, `Účtenkomat — doklady za období ${period}`, html, attachments);
-  if (result.ok) return { sent: true, provider: result.provider, to };
+  const result = await sendEmail(recipient, `Účtenkomat — doklady za období ${period}`, html, attachments);
+  if (result.ok) return { sent: true, provider: result.provider, to: recipient };
   return { sent: false, provider: result.provider, reason: result.error };
 }

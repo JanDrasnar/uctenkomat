@@ -44,7 +44,7 @@ router.post('/:period/send', async (req, res) => {
     await generatePeriodPdf(pdfPath, period, docs, plmajor);
     generateCsv(csvPath, docs);
 
-    const email = await sendToAccountant({ period, pdfPath, csvPath });
+    const email = await sendToAccountant({ period, pdfPath, csvPath, to: req.body?.accountantEmail });
     await markPeriodSent(period);
 
     res.json({
