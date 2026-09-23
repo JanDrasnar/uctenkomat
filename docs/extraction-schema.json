@@ -32,6 +32,7 @@
         "type": ["string", "null"],
         "description": "ISO YYYY-MM-DD. Obvykle jen u faktur."
       },
+      "cislo_dokladu": { "type": ["string", "null"], "description": "Číslo faktury / účtenky." },
       "variabilni_symbol": { "type": ["string", "null"] },
       "mena": {
         "type": "string",

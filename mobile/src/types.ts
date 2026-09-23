@@ -1,7 +1,7 @@
 export type TypDokladu = 'faktura' | 'paragon' | 'neurceno';
 
 export interface DphRadek {
-  sazba: 21 | 12 | 0;
+  sazba: number;
   zaklad: number;
   dph: number;
 }
@@ -16,29 +16,39 @@ export interface DokladData {
   };
   datum_vystaveni: string | null;
   datum_splatnosti?: string | null;
+  cislo_dokladu?: string | null;
   variabilni_symbol?: string | null;
   mena: string;
   castka_celkem: number | null;
   dph_rozpis: DphRadek[];
   qr_platba_nalezena: boolean;
-  qr?: { acc?: string; am?: number; cc?: string; vs?: string; msg?: string };
   pole_ke_kontrole: string[];
   poznamka_extrakce?: string | null;
   ares_overeno?: boolean;
 }
 
+/** Stav zpracování dokladu v telefonu. */
+export type DokladStatus = 'zpracovava' | 'hotovo' | 'chyba';
+
 export interface Doklad {
   id: string;
-  imageUrl: string;
-  period: string;
-  reviewed: boolean;
   createdAt: string;
-  data: DokladData;
-}
-
-export interface PeriodSummary {
+  /** Originální fotka uložená v dokumentech aplikace. */
+  photoUri: string;
+  photoWidth?: number;
+  photoHeight?: number;
+  status: DokladStatus;
+  /** Popis aktuálního kroku při zpracování (pro UI). */
+  step?: string;
+  error?: string;
   period: string;
-  count: number;
-  total: number;
-  sent: boolean;
+  /** Vyplní AI; null dokud extrakce neproběhla. */
+  data: DokladData | null;
+  aiProvider?: string;
+  driveFileId?: string;
+  driveLink?: string;
+  /** Číslo řádku v Google tabulce (1 = hlavička). */
+  sheetRow?: number;
+  sentAt?: string;
+  reviewed: boolean;
 }

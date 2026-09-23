@@ -1,177 +1,156 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Pressable, RefreshControl,
-  StyleSheet, Text, View,
+  ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import type { Doklad, PeriodSummary } from '../types';
-import { getPeriod, getPeriods, sendPeriod, uploadDoklad } from '../api';
-import { getAccountantEmail } from '../settings';
+import type { Doklad } from '../types';
+import { subscribe } from '../store';
+import { addPhoto, sendPeriod } from '../pipeline';
+import { getSettings, type AppSettings } from '../settings';
 import { colors, fmtKc } from '../theme';
 import { periodLabel } from '../period';
 
+function StatusIcon({ d }: { d: Doklad }) {
+  if (d.status === 'zpracovava') return <ActivityIndicator color={colors.primary} />;
+  if (d.status === 'chyba') return <Text style={[styles.flag, { color: colors.error }]}>✕</Text>;
+  if (d.data?.pole_ke_kontrole.length && !d.reviewed) {
+    return <Text style={[styles.flag, { color: colors.warn }]}>⚠</Text>;
+  }
+  return <Text style={[styles.flag, { color: d.sentAt ? colors.ok : colors.muted }]}>{d.sentAt ? '✓' : '●'}</Text>;
+}
+
 export default function HomeScreen({
-  onReview, onOpenSettings,
+  onOpen, onOpenSettings,
 }: {
-  onReview: (d: Doklad) => void;
+  onOpen: (d: Doklad) => void;
   onOpenSettings: () => void;
 }) {
-  const [periods, setPeriods] = useState<PeriodSummary[]>([]);
   const [docs, setDocs] = useState<Doklad[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [sending, setSending] = useState(false);
 
-  // Aktuální období = to s nejvíce doklady, nebo první. Pro MVP zjednodušeno.
-  const current = periods.find((p) => !p.sent) ?? periods[0];
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const ps = await getPeriods();
-      setPeriods(ps);
-      const cur = ps.find((p) => !p.sent) ?? ps[0];
-      if (cur) {
-        const detail = await getPeriod(cur.period);
-        setDocs(detail.documents);
-      } else {
-        setDocs([]);
-      }
-    } catch (e: any) {
-      Alert.alert('Chyba', e.message);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => subscribe(setDocs), []);
+  useEffect(() => {
+    getSettings().then(setSettings);
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Neodeslané hotové doklady po obdobích (pro souhrnné odeslání).
+  const unsent = docs.filter((d) => d.status === 'hotovo' && !d.sentAt);
+  const unsentPeriods = [...new Set(unsent.map((d) => d.period))];
+  const processing = docs.filter((d) => d.status === 'zpracovava').length;
 
   async function capture() {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('Přístup ke kameře', 'Pro focení dokladů povolte přístup ke kameře.');
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
-    if (result.canceled) return;
-
-    setBusy(true);
-    try {
-      const doklad = await uploadDoklad(result.assets[0].uri);
-      onReview(doklad);
-    } catch (e: any) {
-      Alert.alert('Nepodařilo se zpracovat doklad', e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function send() {
-    if (!current) return;
-    const accountantEmail = await getAccountantEmail();
-    if (!accountantEmail) {
+    const s = await getSettings();
+    setSettings(s);
+    if (!s.accountantEmail && s.sendMode === 'per_photo') {
       Alert.alert('Chybí e-mail účetní', 'Nejdřív nastavte e-mail účetní v Nastavení.', [
         { text: 'Zrušit', style: 'cancel' },
         { text: 'Otevřít nastavení', onPress: onOpenSettings },
       ]);
       return;
     }
-    Alert.alert('Odeslat účetní', `Odeslat ${current.count} dokladů za ${periodLabel(current.period)} na ${accountantEmail}?`, [
-      { text: 'Zrušit', style: 'cancel' },
-      {
-        text: 'Odeslat',
-        onPress: async () => {
-          setBusy(true);
-          try {
-            const r = await sendPeriod(current.period, accountantEmail);
-            const msg = r.email?.sent
-              ? `Odesláno účetní (${r.documents} dokladů).`
-              : `Vygenerováno ${r.documents} dokladů. ${r.email?.reason ?? ''}`;
-            Alert.alert('Hotovo', msg);
-            load();
-          } catch (e: any) {
-            Alert.alert('Chyba', e.message);
-          } finally {
-            setBusy(false);
-          }
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Přístup ke kameře', 'Pro focení dokladů povolte přístup ke kameře.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    if (result.canceled) return;
+    const a = result.assets[0];
+    try {
+      await addPhoto(a.uri, a.width, a.height);
+    } catch (e: any) {
+      Alert.alert('Fotku se nepodařilo uložit', e.message);
+    }
+  }
+
+  function send(period: string) {
+    const count = unsent.filter((d) => d.period === period).length;
+    Alert.alert(
+      'Odeslat účetní',
+      `Odeslat ${count} dokladů za ${periodLabel(period)} na ${settings?.accountantEmail || '(nevyplněno)'}?`,
+      [
+        { text: 'Zrušit', style: 'cancel' },
+        {
+          text: 'Odeslat',
+          onPress: async () => {
+            setSending(true);
+            try {
+              await sendPeriod(period);
+            } catch (e: any) {
+              Alert.alert('Odeslání selhalo', e.message);
+            } finally {
+              setSending(false);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={styles.periodTitle}>
-            {current ? periodLabel(current.period) : 'Žádné doklady'}
-          </Text>
-          <Pressable onPress={onOpenSettings} hitSlop={12}>
-            <Text style={styles.gear}>⚙</Text>
-          </Pressable>
-        </View>
-        {current && (
-          <Text style={styles.periodSub}>
-            {current.count} dokladů · {fmtKc(current.total)}
-          </Text>
-        )}
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Účtenkomat</Text>
+        <Pressable onPress={onOpenSettings} hitSlop={12}>
+          <Text style={styles.gear}>⚙</Text>
+        </Pressable>
       </View>
+      <Text style={styles.sub}>
+        {settings?.sendMode === 'per_period' ? 'Odesílání souhrnně za období' : 'Každý doklad se hned posílá účetní'}
+        {processing ? ` · zpracovávám ${processing}` : ''}
+      </Text>
 
-      <Pressable style={styles.captureBtn} onPress={capture} disabled={busy}>
+      <Pressable style={styles.captureBtn} onPress={capture}>
         <Text style={styles.captureBtnText}>＋ Vyfotit doklad</Text>
       </Pressable>
 
-      <Text style={styles.listLabel}>Naposledy přidané</Text>
+      <Text style={styles.listLabel}>Doklady</Text>
       <FlatList
         data={docs}
         keyExtractor={(d) => d.id}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-        ListEmptyComponent={
-          !loading ? <Text style={styles.empty}>Zatím žádné doklady. Vyfoťte první.</Text> : null
-        }
-        renderItem={({ item }) => {
-          const needsCheck = !item.reviewed || item.data.pole_ke_kontrole?.length > 0;
-          return (
-            <Pressable style={styles.row} onPress={() => onReview(item)}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowName}>{item.data.dodavatel?.nazev ?? 'Neznámý dodavatel'}</Text>
-                <Text style={styles.rowMeta}>
-                  {item.data.datum_vystaveni ?? '—'} · {item.data.typ_dokladu}
-                </Text>
-              </View>
-              <Text style={styles.rowAmount}>{fmtKc(item.data.castka_celkem)}</Text>
-              <Text style={needsCheck ? styles.flagWarn : styles.flagOk}>
-                {needsCheck ? '⚠' : '✓'}
+        ListEmptyComponent={<Text style={styles.empty}>Zatím žádné doklady. Vyfoťte první.</Text>}
+        renderItem={({ item }) => (
+          <Pressable style={styles.row} onPress={() => onOpen(item)}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowName} numberOfLines={1}>
+                {item.data?.dodavatel?.nazev ?? (item.status === 'chyba' ? 'Zpracování selhalo' : 'Nový doklad')}
               </Text>
-            </Pressable>
-          );
-        }}
+              <Text style={styles.rowMeta} numberOfLines={1}>
+                {item.status === 'zpracovava'
+                  ? item.step
+                  : item.status === 'chyba'
+                    ? item.error
+                    : `${item.data?.datum_vystaveni ?? '—'} · ${item.sentAt ? 'odesláno' : 'čeká na odeslání'}`}
+              </Text>
+            </View>
+            {item.data && <Text style={styles.rowAmount}>{fmtKc(item.data.castka_celkem)}</Text>}
+            <StatusIcon d={item} />
+          </Pressable>
+        )}
       />
 
-      {current && current.count > 0 && (
-        <Pressable style={styles.sendBtn} onPress={send} disabled={busy}>
-          <Text style={styles.sendBtnText}>Odeslat účetní →</Text>
+      {unsentPeriods.map((p) => (
+        <Pressable key={p} style={styles.sendBtn} onPress={() => send(p)} disabled={sending}>
+          {sending
+            ? <ActivityIndicator color="#fff" />
+            : (
+              <Text style={styles.sendBtnText}>
+                Odeslat účetní – {periodLabel(p)} ({unsent.filter((d) => d.period === p).length}) →
+              </Text>
+            )}
         </Pressable>
-      )}
-
-      {busy && (
-        <View style={styles.overlay}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.overlayText}>Zpracovávám…</Text>
-        </View>
-      )}
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, padding: 16 },
-  header: { marginBottom: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { fontSize: 24, fontWeight: '700', color: colors.text },
   gear: { fontSize: 24, color: colors.muted },
-  periodTitle: { fontSize: 24, fontWeight: '700', color: colors.text },
-  periodSub: { fontSize: 15, color: colors.muted, marginTop: 2 },
+  sub: { fontSize: 14, color: colors.muted, marginTop: 2, marginBottom: 16 },
   captureBtn: {
     backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 18,
     alignItems: 'center', marginBottom: 20,
@@ -180,23 +159,16 @@ const styles = StyleSheet.create({
   listLabel: { fontSize: 13, color: colors.muted, marginBottom: 8, textTransform: 'uppercase' },
   empty: { color: colors.muted, textAlign: 'center', marginTop: 40 },
   row: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, gap: 10,
     borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.border,
   },
   rowName: { fontSize: 16, fontWeight: '600', color: colors.text },
   rowMeta: { fontSize: 13, color: colors.muted, marginTop: 2 },
-  rowAmount: { fontSize: 16, fontWeight: '600', color: colors.text, marginRight: 10 },
-  flagWarn: { fontSize: 18, color: colors.warn },
-  flagOk: { fontSize: 18, color: colors.ok },
+  rowAmount: { fontSize: 16, fontWeight: '600', color: colors.text },
+  flag: { fontSize: 18, width: 20, textAlign: 'center' },
   sendBtn: {
     backgroundColor: colors.text, borderRadius: 14, paddingVertical: 16,
     alignItems: 'center', marginTop: 8,
   },
-  sendBtnText: { color: '#fff', fontSize: 17, fontWeight: '600' },
-  overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  overlayText: { marginTop: 12, color: colors.text, fontSize: 16 },
+  sendBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

@@ -1,58 +1,106 @@
 # Účtenkomat
 
-Mobilní aplikace pro OSVČ a s.r.o.: vyfoť účtenku nebo fakturu, aplikace z ní přečte
-údaje a na konci měsíce/čtvrtletí pošle účetní jeden balík (PDF + CSV) se všemi doklady.
+Mobilní aplikace (Android) pro OSVČ a s.r.o.: vyfoť účtenku nebo fakturu, AI z ní přečte
+daňové údaje, zapíše je do **Google tabulky** (s odkazem na fotku na **Google Disku**)
+a doklad pošle **účetní e‑mailem**. Hotové zpracování ohlásí notifikace.
 
 > Český trh. Zaměřeno na **přijaté doklady** — paragony (účtenky) a faktury.
-> Žádná hluboká integrace s účetním softwarem (Pohoda/Flexi) — zatím jen čistý handoff e‑mailem.
 
 ## Jak to funguje
 
+Celé zpracování běží přímo v telefonu — bez vlastního serveru:
+
 ```
-Vyfotit doklad  →  Extrakce údajů (Claude vision)  →  Zkontrolovat/opravit
-   →  Uloží se do aktuálního období  →  „Odeslat účetní" (PDF + CSV e‑mailem)
+Vyfotit doklad
+  → AI extrakce (Claude / OpenAI / Gemini — API klíč uživatele z Nastavení)
+  → ověření dodavatele v ARES
+  → fotka na Google Disk (složka „Účtenkomat“)
+  → řádek v Google tabulce „Účtenkomat – doklady“ (odkaz na fotku)
+  → e‑mail účetní z Gmailu uživatele (fotka v příloze + údaje v textu)
+  → notifikace „Doklad zpracován a odeslán účetní ✓“
 ```
 
-Doklad se podle **data vystavení** zařadí do správného období (měsíc nebo čtvrtletí).
-Originální fotka se ukládá nezměněná (je to právní originál, archivace ~10 let).
+Po vyfocení se hned můžete vrátit k focení dalšího dokladu — zpracování běží na pozadí
+a každý krok se ukládá, takže přerušené zpracování (zavřená aplikace, výpadek sítě)
+se po návratu do aplikace dokončí. Chyby se dají zopakovat tlačítkem „Zkusit znovu“.
 
-## Struktura repozitáře (monorepo)
+### Nastavení v aplikaci (⚙)
+
+| Volba | Možnosti | Výchozí |
+|---|---|---|
+| E‑mail účetní | libovolná adresa | — |
+| Odesílání dokladů | **Každý doklad hned** / Souhrnně za období (fotky + CSV jedním e‑mailem) | každý doklad hned |
+| Účetní období | měsíc / čtvrtletí | čtvrtletí |
+| AI pro čtení dokladů | Claude / OpenAI / Gemini + API klíč + model | Claude |
+| Google účet | přihlášení vlastním Google účtem | — |
+
+API klíče AI jsou uložené šifrovaně jen v telefonu (`expo-secure-store` → Android Keystore).
+Každý uživatel se přihlašuje vlastním Google účtem a má vlastní tabulku i složku.
+
+### Sloupce v Google tabulce
+
+ID · Přidáno · Typ · Datum vystavení / DUZP · Splatnost · Číslo dokladu · Dodavatel · IČO · DIČ ·
+Adresa · VS · Měna · Základ 21 % · DPH 21 % · Základ 12 % · DPH 12 % · Základ 0 % · Celkem ·
+Ke kontrole · ARES ověřeno · Foto (odkaz na Disk) · Odesláno účetní · Období · AI
+
+Oprava údajů v aplikaci přepíše příslušný řádek; u už odeslaného dokladu aplikace nabídne
+poslat účetní opravu.
+
+## Struktura repozitáře
 
 ```
 uctenkomat/
-├── mobile/      Expo (React Native + TypeScript) — mobilní aplikace
-├── backend/     Node.js + Express — extrakce, ARES, generování PDF/CSV, odeslání
+├── mobile/      Expo (React Native + TypeScript) — aplikace, celé zpracování
+│   └── src/
+│       ├── ai/          extrakční schéma + volání Claude / OpenAI / Gemini
+│       ├── google.ts    přihlášení, Drive, Sheets, Gmail
+│       ├── pipeline.ts  zpracování dokladu krok po kroku, souhrnné odeslání
+│       ├── store.ts     lokální seznam dokladů
+│       └── notify.ts    notifikace
+├── backend/     Původní Node.js backend (Railway) — aplikace ho už nepoužívá
 └── docs/        Specifikace: extrakční schéma, prompt, ARES, SPAYD
 ```
 
-## Rychlý start
+## Zprovoznění
 
-### Backend
-```bash
-cd backend
-cp .env.example .env        # doplň ANTHROPIC_API_KEY
-npm install
-npm run dev                 # http://localhost:3000
-```
+### 1. Google Cloud (jednou, cca 10 minut)
 
-### Mobil
+1. [console.cloud.google.com](https://console.cloud.google.com) → nový projekt.
+2. **APIs & Services → Library** → zapnout **Google Drive API**, **Google Sheets API**, **Gmail API**.
+3. **OAuth consent screen** → typ *External*, vyplnit název aplikace a e‑mail.
+   Přidat scopes `.../auth/drive.file` a `.../auth/gmail.send`.
+   Dokud je aplikace v režimu *Testing*, přidejte do **Test users** Google účty,
+   které se budou přihlašovat (max. 100).
+4. **Credentials → Create credentials → OAuth client ID → Android**:
+   - Package name: `cz.uctenkomat.app`
+   - SHA‑1: otisk podpisového klíče buildu — `eas credentials` (Android → Keystore)
+     nebo `cd android && ./gradlew signingReport` u lokálního buildu.
+
+`drive.file` vidí jen soubory, které aplikace sama vytvořila — ne celý Disk uživatele.
+`gmail.send` umí jen odesílat, ne číst poštu. Pro veřejné vydání (nad 100 uživatelů)
+Google u `gmail.send` vyžaduje ověření aplikace.
+
+### 2. Build aplikace
+
+Google přihlášení je nativní modul, takže aplikace **neběží v Expo Go** — je potřeba
+development build:
+
 ```bash
 cd mobile
 npm install
-npx expo start              # naskenuj QR kód v Expo Go
+npx eas-cli build -p android --profile development   # nebo: npx expo run:android
+npx expo start --dev-client
 ```
-V `mobile/src/api/client.ts` nastav `API_BASE_URL` na IP adresu počítače
-s backendem (např. `http://192.168.1.10:3000`), aby na něj telefon dosáhl.
 
-## Stav
+### 3. V aplikaci
 
-MVP scaffold. Funkční kostra — viz `docs/` pro detaily extrakce a [TODO](#todo).
+⚙ Nastavení → e‑mail účetní, způsob odesílání, AI poskytovatel + API klíč,
+**Přihlásit se Googlem**. Při prvním dokladu se na Disku založí složka a tabulka.
 
-## TODO
+## Omezení / TODO
 
-- [x] Dekódování QR Platby (SPAYD) přímo z obrázku — `backend/src/services/qr.js`
-- [x] Odesílání e‑mailem přes SMTP — `backend/src/services/email.js` (zapne se po vyplnění SMTP v `.env`)
-- [x] Postgres úložiště — `backend/src/store/` (zapne se po nastavení `DATABASE_URL`, jinak JSON fallback)
-- [ ] Obrázky do S3 (teď lokální `uploads/`)
-- [ ] Autentizace uživatele
-- [ ] Test na reálných vybledlých termopaprových účtenkách (Shell/Albert) — nejhorší případ
+- [ ] QR Platba (SPAYD) se z obrázku nedekóduje přímo — AI jen hlásí, že na dokladu je.
+      (Původní dekódování v `backend/src/services/qr.js`.)
+- [ ] Android může zpracování na pozadí po delší době uspat — dokončí se po návratu do aplikace.
+- [ ] iOS: doplnit `iosUrlScheme` pro Google Sign‑In plugin.
+- [ ] Test na reálných vybledlých termopapírových účtenkách (Shell/Albert) — nejhorší případ.

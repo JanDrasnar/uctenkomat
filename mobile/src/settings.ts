@@ -1,12 +1,67 @@
-// Lokální nastavení aplikace (uložené na zařízení přes AsyncStorage).
+// Nastavení aplikace. Běžné volby v AsyncStorage, API klíče AI zvlášť
+// v šifrovaném úložišti (expo-secure-store → Android Keystore).
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
-const ACCOUNTANT_EMAIL_KEY = 'uctenkomat.accountantEmail';
+export type SendMode = 'per_photo' | 'per_period';
+export type PeriodType = 'mesic' | 'ctvrtleti';
+export type AiProvider = 'anthropic' | 'openai' | 'gemini';
 
-export async function getAccountantEmail(): Promise<string> {
-  return (await AsyncStorage.getItem(ACCOUNTANT_EMAIL_KEY)) ?? '';
+export interface AppSettings {
+  accountantEmail: string;
+  /** Posílat účetní každý doklad hned, nebo souhrnně za období. */
+  sendMode: SendMode;
+  periodType: PeriodType;
+  aiProvider: AiProvider;
+  /** Model pro každého poskytovatele; prázdné = výchozí. */
+  aiModels: Partial<Record<AiProvider, string>>;
 }
 
-export async function setAccountantEmail(email: string): Promise<void> {
-  await AsyncStorage.setItem(ACCOUNTANT_EMAIL_KEY, email.trim());
+export const AI_PROVIDERS: { id: AiProvider; label: string; defaultModel: string; keyHint: string }[] = [
+  { id: 'anthropic', label: 'Claude', defaultModel: 'claude-sonnet-5', keyHint: 'sk-ant-…' },
+  { id: 'openai', label: 'OpenAI', defaultModel: 'gpt-5-mini', keyHint: 'sk-…' },
+  { id: 'gemini', label: 'Gemini', defaultModel: 'gemini-2.5-flash', keyHint: 'AIza…' },
+];
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  accountantEmail: '',
+  sendMode: 'per_photo',
+  periodType: 'ctvrtleti',
+  aiProvider: 'anthropic',
+  aiModels: {},
+};
+
+const SETTINGS_KEY = 'uctenkomat.settings';
+// Starší verze ukládala jen e-mail účetní pod tímto klíčem.
+const LEGACY_EMAIL_KEY = 'uctenkomat.accountantEmail';
+
+export async function getSettings(): Promise<AppSettings> {
+  const raw = await AsyncStorage.getItem(SETTINGS_KEY);
+  if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  const legacyEmail = (await AsyncStorage.getItem(LEGACY_EMAIL_KEY)) ?? '';
+  return { ...DEFAULT_SETTINGS, accountantEmail: legacyEmail };
+}
+
+export async function saveSettings(s: AppSettings): Promise<void> {
+  await AsyncStorage.setItem(
+    SETTINGS_KEY,
+    JSON.stringify({ ...s, accountantEmail: s.accountantEmail.trim() }),
+  );
+}
+
+export function modelFor(s: AppSettings, provider: AiProvider = s.aiProvider): string {
+  return s.aiModels[provider]?.trim()
+    || AI_PROVIDERS.find((p) => p.id === provider)!.defaultModel;
+}
+
+const keyName = (p: AiProvider) => `uctenkomat.aikey.${p}`;
+
+export async function getApiKey(p: AiProvider): Promise<string> {
+  return (await SecureStore.getItemAsync(keyName(p))) ?? '';
+}
+
+export async function setApiKey(p: AiProvider, key: string): Promise<void> {
+  const k = key.trim();
+  if (k) await SecureStore.setItemAsync(keyName(p), k);
+  else await SecureStore.deleteItemAsync(keyName(p));
 }

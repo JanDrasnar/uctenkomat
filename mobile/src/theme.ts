@@ -9,6 +9,7 @@ export const colors = {
   warn: '#C9700A',
   warnBg: '#FDF3E3',
   ok: '#1B873F',
+  error: '#C62828',
 };
 
 export function fmtKc(n: number | null | undefined): string {
