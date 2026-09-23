@@ -70,6 +70,8 @@ Zásady:
 - Pokud údaj nedokážeš spolehlivě přečíst, vrať null — NEHÁDEJ. Raději null než vymyšlená hodnota.
 - Každé pole, u kterého si nejsi jistý čitelností, přidej do \`pole_ke_kontrole\`.
 - Datumy převeď do formátu YYYY-MM-DD. Český formát je obvykle DD.MM.YYYY.
+- Dnešní datum dostaneš ve zprávě. Doklad vystavený dnes nebo dříve je v pořádku — datum
+  vystavení označ ke kontrole jen tehdy, když je opravdu po dnešním datu.
 - Částky vracej jako čísla bez měny a bez mezer (1 250,50 → 1250.50). Desetinný oddělovač v ČR je čárka — převeď na tečku.
 - IČO má přesně 8 číslic. Pokud čteš jiný počet, dej ico=null a přidej do kontroly.
 - Platné sazby DPH v ČR od roku 2024: 21 %, 12 %, 0 %. Sazby 15 % a 10 % už neplatí — pokud je vidíš na starším dokladu, přečti je tak jak jsou.

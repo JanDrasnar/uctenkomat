@@ -4,7 +4,19 @@ import type { DokladData } from '../types';
 import type { AiProvider } from '../settings';
 import { DOKLAD_SCHEMA, SYSTEM_PROMPT, toGeminiSchema, toOpenAiStrict } from './schema';
 
-const USER_TEXT = 'Zpracuj tento doklad.';
+/**
+ * Model nezná dnešní datum — bez něj označoval čerstvé doklady jako
+ * „datum v budoucnosti“. Datum je podle telefonu (místní čas, ne UTC).
+ */
+function userText(): string {
+  const now = new Date();
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-');
+  return `Dnešní datum je ${today}. Zpracuj tento doklad.`;
+}
 
 async function postJson(url: string, headers: Record<string, string>, body: unknown) {
   const res = await fetch(url, {
@@ -44,7 +56,7 @@ async function anthropic(apiKey: string, model: string, b64: string): Promise<un
         role: 'user',
         content: [
           { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
-          { type: 'text', text: USER_TEXT },
+          { type: 'text', text: userText() },
         ],
       }],
     },
@@ -71,7 +83,7 @@ async function openai(apiKey: string, model: string, b64: string): Promise<unkno
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}`, detail: 'high' } },
-            { type: 'text', text: USER_TEXT },
+            { type: 'text', text: userText() },
           ],
         },
       ],
@@ -90,7 +102,7 @@ async function gemini(apiKey: string, model: string, b64: string): Promise<unkno
       systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [{
         role: 'user',
-        parts: [{ inline_data: { mime_type: 'image/jpeg', data: b64 } }, { text: USER_TEXT }],
+        parts: [{ inline_data: { mime_type: 'image/jpeg', data: b64 } }, { text: userText() }],
       }],
       generationConfig: {
         responseMimeType: 'application/json',
