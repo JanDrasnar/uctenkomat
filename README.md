@@ -56,6 +56,22 @@ v Nastavení nebo nejpozději s prvním odeslaným dokladem. Google jí pošle p
 Oprava údajů v aplikaci přepíše příslušný řádek; u už odeslaného dokladu aplikace nabídne
 poslat účetní opravu.
 
+### Firma — více uživatelů, jedna tabulka a složka (krok 1)
+
+⚙ Nastavení → **Firma**:
+
+- **Založit novou firmu** — správce založí na svém Disku složku „Účtenkomat – <firma>“
+  a tabulku „<firma> – doklady“. Od té doby se jeho doklady ukládají tam.
+- **Pozvat kolegu** — složka i tabulka se kolegovi nasdílí (úpravy) a Google mu pošle
+  e‑mail s pozvánkou a kódem `UCT1-…`. Pozvánku jde poslat i WhatsAppem/SMS.
+- **Připojit se k firmě** — kolega zkopíruje pozvánku a klepne na tlačítko. Aplikace nejdřív
+  ověří přístup (čtení tabulky, uložení a smazání testovacího souboru ve složce) a teprve
+  pak začne ukládat do firmy. Výsledek kontroly je vidět na obrazovce.
+- **Opustit firmu** — další doklady jdou zase do osobní tabulky.
+
+Otevřená otázka, kterou kontrola přístupu ověřuje: zda scope `drive.file` pustí aplikaci
+kolegy k souborům, které aplikace vytvořila u správce a správce je nasdílel.
+
 ## Struktura repozitáře
 
 ```

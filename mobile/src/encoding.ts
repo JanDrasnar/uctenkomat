@@ -29,6 +29,33 @@ export function utf8ToBase64(s: string): string {
   return out;
 }
 
+export function base64ToUtf8(b64: string): string {
+  const clean = b64.replace(/[^A-Za-z0-9+/]/g, '');
+  const bytes: number[] = [];
+  for (let i = 0; i < clean.length; i += 4) {
+    const n = (B64.indexOf(clean[i]) << 18) | (B64.indexOf(clean[i + 1]) << 12)
+      | ((i + 2 < clean.length ? B64.indexOf(clean[i + 2]) : 0) << 6)
+      | (i + 3 < clean.length ? B64.indexOf(clean[i + 3]) : 0);
+    bytes.push((n >> 16) & 255);
+    if (i + 2 < clean.length) bytes.push((n >> 8) & 255);
+    if (i + 3 < clean.length) bytes.push(n & 255);
+  }
+  let out = '';
+  for (let i = 0; i < bytes.length;) {
+    const b = bytes[i];
+    let cp: number;
+    if (b < 0x80) { cp = b; i += 1; }
+    else if (b < 0xe0) { cp = ((b & 31) << 6) | (bytes[i + 1] & 63); i += 2; }
+    else if (b < 0xf0) { cp = ((b & 15) << 12) | ((bytes[i + 1] & 63) << 6) | (bytes[i + 2] & 63); i += 3; }
+    else {
+      cp = ((b & 7) << 18) | ((bytes[i + 1] & 63) << 12) | ((bytes[i + 2] & 63) << 6) | (bytes[i + 3] & 63);
+      i += 4;
+    }
+    out += String.fromCodePoint(cp);
+  }
+  return out;
+}
+
 /** Zalomí base64 na řádky po 76 znacích (RFC 2045). */
 function wrap76(b64: string): string {
   return b64.replace(/(.{76})/g, '$1\r\n');

@@ -59,6 +59,8 @@ export interface Doklad {
   driveLink?: string;
   /** Číslo řádku v Google tabulce (1 = hlavička). */
   sheetRow?: number;
+  /** Tabulka, do které byl řádek zapsán (osobní nebo firemní). */
+  sheetId?: string;
   sentAt?: string;
   reviewed: boolean;
 }

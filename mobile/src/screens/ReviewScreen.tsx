@@ -5,8 +5,7 @@ import {
 } from 'react-native';
 import type { Doklad, DokladData } from '../types';
 import { subscribe, updateDoklad } from '../store';
-import { processDoklad, sendSingle, sheetRowValues } from '../pipeline';
-import { updateRow } from '../google';
+import { processDoklad, sendSingle, syncRow } from '../pipeline';
 import { getSettings } from '../settings';
 import { periodKey, periodLabel } from '../period';
 import { colors, fmtKc } from '../theme';
@@ -68,7 +67,7 @@ export default function ReviewScreen({ doklad, onClose }: { doklad: Doklad; onCl
         reviewed: true,
         period: periodKey(data.datum_vystaveni, settings.periodType),
       }))!;
-      if (updated.sheetRow) await updateRow(updated.sheetRow, sheetRowValues(updated));
+      await syncRow(updated);
 
       if (updated.sentAt && settings.accountantEmail) {
         Alert.alert('Doklad už byl odeslán', 'Poslat účetní opravenou verzi?', [

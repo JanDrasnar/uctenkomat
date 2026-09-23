@@ -10,6 +10,7 @@ import { getSettings, type AppSettings } from '../settings';
 import { colors, fmtKc } from '../theme';
 import { periodLabel } from '../period';
 import { fmtCzkSmall } from '../ai/pricing';
+import { getCompany } from '../google';
 
 function StatusIcon({ d }: { d: Doklad }) {
   if (d.status === 'zpracovava') return <ActivityIndicator color={colors.primary} />;
@@ -32,10 +33,12 @@ export default function HomeScreen({
   const [docs, setDocs] = useState<Doklad[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [sending, setSending] = useState(false);
+  const [companyName, setCompanyName] = useState<string | null>(null);
 
   useEffect(() => subscribe(setDocs), []);
   useEffect(() => {
     getSettings().then(setSettings);
+    getCompany().then((c) => setCompanyName(c?.name ?? null));
   }, []);
 
   // Neodeslané hotové doklady po obdobích (pro souhrnné odeslání).
@@ -107,7 +110,7 @@ export default function HomeScreen({
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Účtenkomat</Text>
+        <Text style={styles.title} numberOfLines={1}>{companyName ?? 'Účtenkomat'}</Text>
         <Pressable onPress={onOpenSettings} hitSlop={12}>
           <Text style={styles.gear}>⚙</Text>
         </Pressable>
@@ -171,7 +174,7 @@ export default function HomeScreen({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, padding: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 24, fontWeight: '700', color: colors.text },
+  title: { fontSize: 24, fontWeight: '700', color: colors.text, flexShrink: 1, marginRight: 12 },
   gear: { fontSize: 24, color: colors.muted },
   sub: { fontSize: 14, color: colors.muted, marginTop: 2, marginBottom: 4 },
   cost: { fontSize: 13, color: colors.muted, marginBottom: 12 },

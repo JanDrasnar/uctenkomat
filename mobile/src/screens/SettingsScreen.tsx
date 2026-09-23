@@ -8,6 +8,7 @@ import {
 } from '../settings';
 import AiKeySetup from '../components/AiKeySetup';
 import Segmented from '../components/Segmented';
+import CompanySection from '../components/CompanySection';
 import {
   currentGoogleEmail, getSetup, shareFolderWith, signInGoogle, signOutGoogle,
 } from '../google';
@@ -163,6 +164,10 @@ export default function SettingsScreen({
             <Text style={styles.googleText}>Přihlásit se Googlem</Text>
           </Pressable>
         )}
+
+        {/* --- Firma ------------------------------------------------------------ */}
+        <Text style={styles.section}>Firma</Text>
+        <CompanySection key={googleEmail ?? 'none'} accountantEmail={s.accountantEmail} />
 
         <Pressable style={styles.wizardBtn} onPress={onRunWizard}>
           <Text style={styles.link}>Spustit průvodce nastavením znovu</Text>

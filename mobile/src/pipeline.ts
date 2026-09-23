@@ -11,7 +11,8 @@ import type { Doklad, DokladData } from './types';
 import { extractDoklad } from './ai/extract';
 import { lookupIco } from './ares';
 import {
-  appendRow, getSetup, sendMail, shareFolderWith, updateHeader, updateRow, uploadPhoto, type SheetCell,
+  appendRow, getPersonalSetup, sendMail, shareFolderWith, updateHeader, updateRow, uploadPhoto,
+  type SheetCell,
 } from './google';
 import { costUsd, usdCzkRate } from './ai/pricing';
 import { addDoklad, getDoklad, listDoklady, updateDoklad } from './store';
@@ -63,13 +64,32 @@ export async function addPhoto(uri: string, width?: number, height?: number): Pr
 const SHEET_VERSION = 3;
 const SHEET_VERSION_KEY = 'uctenkomat.sheetVersion';
 
+/**
+ * Doklady ze starších verzí nevědí, do které tabulky se zapsaly — tehdy
+ * existovala jen osobní. Doplní se před přechodem do firmy.
+ */
+export async function stampSheetIds() {
+  const personal = await getPersonalSetup();
+  if (!personal) return;
+  for (const d of await listDoklady()) {
+    if (d.sheetRow && !d.sheetId) await updateDoklad(d.id, { sheetId: personal.spreadsheetId });
+  }
+}
+
+/** Přepíše řádek dokladu v tabulce, do které byl zapsán. */
+export async function syncRow(doc: Doklad) {
+  if (doc.sheetRow && doc.data) await updateRow(doc.sheetRow, sheetRowValues(doc), doc.sheetId);
+}
+
 export async function migrateSheet() {
+  await stampSheetIds().catch(() => undefined);
   if (Number(await AsyncStorage.getItem(SHEET_VERSION_KEY)) >= SHEET_VERSION) return;
   try {
-    if (!(await getSetup())) return; // tabulka ještě neexistuje — vznikne rovnou nová
-    await updateHeader();
+    const personal = await getPersonalSetup();
+    if (!personal) return; // tabulka ještě neexistuje — vznikne rovnou nová
+    await updateHeader(personal.spreadsheetId);
     for (const d of await listDoklady()) {
-      if (d.sheetRow && d.data) await updateRow(d.sheetRow, sheetRowValues(d));
+      if (d.sheetId === personal.spreadsheetId) await syncRow(d);
     }
     await AsyncStorage.setItem(SHEET_VERSION_KEY, String(SHEET_VERSION));
   } catch {
@@ -157,7 +177,7 @@ export async function sendSingle(doc: Doklad, to: string, correction = false): P
     attachments: [{ filename: photoName(doc), mimeType: 'image/jpeg', base64: photo }],
   });
   const sent = (await updateDoklad(doc.id, { sentAt: new Date().toISOString() }))!;
-  if (sent.sheetRow) await updateRow(sent.sheetRow, sheetRowValues(sent));
+  await syncRow(sent);
   return sent;
 }
 
@@ -205,8 +225,8 @@ export async function processDoklad(id: string): Promise<void> {
 
     if (!doc.sheetRow) {
       await step('Zapisuji do Google tabulky…');
-      const row = await appendRow(sheetRowValues(doc));
-      doc = (await updateDoklad(id, { sheetRow: row }))!;
+      const { row, spreadsheetId } = await appendRow(sheetRowValues(doc));
+      doc = (await updateDoklad(id, { sheetRow: row, sheetId: spreadsheetId }))!;
     }
 
     const perPhoto = settings.sendMode === 'per_photo';
@@ -279,7 +299,7 @@ export async function sendPeriod(period: string): Promise<number> {
   const sentAt = new Date().toISOString();
   for (const doc of docs) {
     const updated = (await updateDoklad(doc.id, { sentAt }))!;
-    if (updated.sheetRow) await updateRow(updated.sheetRow, sheetRowValues(updated)).catch(() => undefined);
+    await syncRow(updated).catch(() => undefined);
   }
   await notify('Doklady odeslány účetní ✓', `${docs.length} dokladů za ${periodLabel(period)} odesláno na ${settings.accountantEmail}.`);
   return docs.length;
