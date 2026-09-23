@@ -20,10 +20,13 @@ function StatusIcon({ d }: { d: Doklad }) {
 }
 
 export default function HomeScreen({
-  onOpen, onOpenSettings,
+  onOpen, onOpenSettings, autoCapture, onAutoCaptureDone,
 }: {
   onOpen: (d: Doklad) => void;
   onOpenSettings: () => void;
+  /** Po dokončení průvodce rovnou otevřít fotoaparát. */
+  autoCapture?: boolean;
+  onAutoCaptureDone?: () => void;
 }) {
   const [docs, setDocs] = useState<Doklad[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -38,6 +41,13 @@ export default function HomeScreen({
   const unsent = docs.filter((d) => d.status === 'hotovo' && !d.sentAt);
   const unsentPeriods = [...new Set(unsent.map((d) => d.period))];
   const processing = docs.filter((d) => d.status === 'zpracovava').length;
+
+  useEffect(() => {
+    if (!autoCapture) return;
+    onAutoCaptureDone?.();
+    capture();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCapture]);
 
   async function capture() {
     const s = await getSettings();

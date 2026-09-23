@@ -100,10 +100,28 @@ npm install
 npx expo run:android
 ```
 
-### 3. V aplikaci
+### 3. V aplikaci — průvodce prvním spuštěním
 
-⚙ Nastavení → e‑mail účetní, způsob odesílání, AI poskytovatel + API klíč,
-**Přihlásit se Googlem**. Při prvním dokladu se na Disku založí složka a tabulka.
+Při prvním spuštění provede uživatele (i úplně netechnického) průvodce:
+
+1. **Google účet** — jedno klepnutí „Přihlásit se Googlem“; hned se založí složka a tabulka.
+2. **Účetní** — e‑mail a kdy posílat (každý doklad hned / za období). Složka se účetní rovnou nasdílí.
+3. **Čtení dokladů (AI)** — výběr služby s doporučením (Gemini: zdarma, stačí Google účet;
+   Claude / OpenAI: placený kredit). Pro každou službu očíslované kroky, tlačítko přímo na
+   správnou stránku, **„Vložit zkopírovaný klíč“** jedním klepnutím, automatické rozpoznání
+   služby podle klíče a **okamžité ověření** klíče i kreditu srozumitelnou češtinou.
+4. **Hotovo** — shrnutí a „Vyfotit první doklad“.
+
+Každý krok jde přeskočit a průvodce se dá spustit znovu v ⚙ Nastavení.
+
+### Co musí udělat vydavatel aplikace (ne koncový uživatel)
+
+Google Cloud projekt (krok 1 výše) zakládá jen vydavatel, jednou. Dokud je v režimu
+*Testing*, musí být každý uživatel přidaný mezi **Test users** a při přihlášení uvidí
+„Aplikace není ověřena“. Pro běžné uživatele je potřeba aplikaci u Googlu nechat
+**ověřit** (OAuth verification — kvůli scope `gmail.send`: zásady ochrany soukromí,
+video s ukázkou použití, pár dní až týdnů). Pak přihlášení proběhne bez varování
+a bez limitu 100 uživatelů.
 
 ## Omezení / TODO
 

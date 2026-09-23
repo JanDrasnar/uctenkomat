@@ -9,6 +9,7 @@ export const colors = {
   warn: '#C9700A',
   warnBg: '#FDF3E3',
   ok: '#1B873F',
+  okBg: '#E6F4EA',
   error: '#C62828',
 };
 

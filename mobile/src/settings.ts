@@ -15,6 +15,8 @@ export interface AppSettings {
   aiProvider: AiProvider;
   /** Model pro každého poskytovatele; prázdné = výchozí. */
   aiModels: Partial<Record<AiProvider, string>>;
+  /** Průvodce prvním spuštěním dokončen. */
+  onboarded: boolean;
 }
 
 export const AI_PROVIDERS: { id: AiProvider; label: string; defaultModel: string; keyHint: string }[] = [
@@ -29,6 +31,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   periodType: 'ctvrtleti',
   aiProvider: 'anthropic',
   aiModels: {},
+  onboarded: false,
 };
 
 const SETTINGS_KEY = 'uctenkomat.settings';
@@ -37,9 +40,14 @@ const LEGACY_EMAIL_KEY = 'uctenkomat.accountantEmail';
 
 export async function getSettings(): Promise<AppSettings> {
   const raw = await AsyncStorage.getItem(SETTINGS_KEY);
-  if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  if (raw) {
+    const saved = JSON.parse(raw);
+    // Uživatelé z doby před průvodcem ho už nemusí procházet.
+    if (saved.onboarded === undefined) saved.onboarded = !!saved.accountantEmail;
+    return { ...DEFAULT_SETTINGS, ...saved };
+  }
   const legacyEmail = (await AsyncStorage.getItem(LEGACY_EMAIL_KEY)) ?? '';
-  return { ...DEFAULT_SETTINGS, accountantEmail: legacyEmail };
+  return { ...DEFAULT_SETTINGS, accountantEmail: legacyEmail, onboarded: !!legacyEmail };
 }
 
 export async function saveSettings(s: AppSettings): Promise<void> {
