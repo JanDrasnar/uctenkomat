@@ -116,7 +116,7 @@ export default function HomeScreen({
               <Text style={styles.rowName} numberOfLines={1}>
                 {item.data?.dodavatel?.nazev ?? (item.status === 'chyba' ? 'Zpracování selhalo' : 'Nový doklad')}
               </Text>
-              <Text style={styles.rowMeta} numberOfLines={1}>
+              <Text style={styles.rowMeta} numberOfLines={2}>
                 {item.status === 'zpracovava'
                   ? item.step
                   : item.status === 'chyba'

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { AppState, SafeAreaView, StyleSheet } from 'react-native';
+import { AppState, StyleSheet } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import HomeScreen from './src/screens/HomeScreen';
 import ReviewScreen from './src/screens/ReviewScreen';
@@ -29,16 +30,21 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar style="dark" />
-      {showSettings ? (
-        <SettingsScreen onClose={() => setShowSettings(false)} />
-      ) : openDoc ? (
-        <ReviewScreen doklad={openDoc} onClose={() => setOpenDoc(null)} />
-      ) : (
-        <HomeScreen onOpen={setOpenDoc} onOpenSettings={() => setShowSettings(true)} />
-      )}
-    </SafeAreaView>
+    // Android 15+ kreslí aplikaci pod stavový i navigační řádek (edge-to-edge).
+    // SafeAreaView z react-native funguje jen na iOS, proto safe-area-context,
+    // který odsadí obsah od systémových lišt na všech zařízeních.
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
+        <StatusBar style="dark" />
+        {showSettings ? (
+          <SettingsScreen onClose={() => setShowSettings(false)} />
+        ) : openDoc ? (
+          <ReviewScreen doklad={openDoc} onClose={() => setOpenDoc(null)} />
+        ) : (
+          <HomeScreen onOpen={setOpenDoc} onOpenSettings={() => setShowSettings(true)} />
+        )}
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
