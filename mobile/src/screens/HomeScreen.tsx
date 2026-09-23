@@ -9,6 +9,7 @@ import { addPhoto, sendPeriod } from '../pipeline';
 import { getSettings, type AppSettings } from '../settings';
 import { colors, fmtKc } from '../theme';
 import { periodLabel } from '../period';
+import { fmtCzkSmall } from '../ai/pricing';
 
 function StatusIcon({ d }: { d: Doklad }) {
   if (d.status === 'zpracovava') return <ActivityIndicator color={colors.primary} />;
@@ -41,6 +42,11 @@ export default function HomeScreen({
   const unsent = docs.filter((d) => d.status === 'hotovo' && !d.sentAt);
   const unsentPeriods = [...new Set(unsent.map((d) => d.period))];
   const processing = docs.filter((d) => d.status === 'zpracovava').length;
+
+  // Skutečné náklady na AI za tento kalendářní měsíc (podle data vyfocení).
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const monthDocs = docs.filter((d) => d.createdAt.startsWith(thisMonth) && d.aiUsage);
+  const monthCost = monthDocs.reduce((sum, d) => sum + (d.aiUsage?.costCzk ?? 0), 0);
 
   useEffect(() => {
     if (!autoCapture) return;
@@ -110,6 +116,13 @@ export default function HomeScreen({
         {settings?.sendMode === 'per_period' ? 'Odesílání souhrnně za období' : 'Každý doklad se hned posílá účetní'}
         {processing ? ` · zpracovávám ${processing}` : ''}
       </Text>
+      {monthDocs.length > 0 && (
+        <Text style={styles.cost}>
+          Tento měsíc: {monthDocs.length} {monthDocs.length === 1 ? 'doklad' : monthDocs.length < 5 ? 'doklady' : 'dokladů'}
+          {' · '}AI {fmtCzkSmall(monthCost)}
+          {' · '}průměr {fmtCzkSmall(monthCost / monthDocs.length)}/doklad
+        </Text>
+      )}
 
       <Pressable style={styles.captureBtn} onPress={capture}>
         <Text style={styles.captureBtnText}>＋ Vyfotit doklad</Text>
@@ -160,7 +173,8 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 24, fontWeight: '700', color: colors.text },
   gear: { fontSize: 24, color: colors.muted },
-  sub: { fontSize: 14, color: colors.muted, marginTop: 2, marginBottom: 16 },
+  sub: { fontSize: 14, color: colors.muted, marginTop: 2, marginBottom: 4 },
+  cost: { fontSize: 13, color: colors.muted, marginBottom: 12 },
   captureBtn: {
     backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 18,
     alignItems: 'center', marginBottom: 20,

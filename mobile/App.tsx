@@ -10,7 +10,7 @@ import { getSettings } from './src/settings';
 import type { Doklad } from './src/types';
 import { configureGoogle, signInGoogleSilently } from './src/google';
 import { initNotifications } from './src/notify';
-import { repairSheetLinks, resumePending } from './src/pipeline';
+import { migrateSheet, resumePending } from './src/pipeline';
 import { colors } from './src/theme';
 
 export default function App() {
@@ -28,7 +28,7 @@ export default function App() {
       await signInGoogleSilently();
       // Doklady rozpracované před zavřením aplikace dokonči.
       await resumePending();
-      await repairSheetLinks();
+      await migrateSheet();
     })();
     const sub = AppState.addEventListener('change', (s) => {
       if (s === 'active') resumePending();

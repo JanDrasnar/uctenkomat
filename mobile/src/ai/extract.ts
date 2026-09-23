@@ -38,7 +38,18 @@ async function postJson(url: string, headers: Record<string, string>, body: unkn
   return JSON.parse(text);
 }
 
-async function anthropic(apiKey: string, model: string, b64: string): Promise<unknown> {
+/** Spotřeba tokenů tak, jak ji vrátil poskytovatel (výstup včetně „přemýšlení“). */
+export interface AiUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+interface RawResult {
+  data: unknown;
+  usage: AiUsage;
+}
+
+async function anthropic(apiKey: string, model: string, b64: string): Promise<RawResult> {
   const msg = await postJson(
     'https://api.anthropic.com/v1/messages',
     { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
@@ -63,10 +74,17 @@ async function anthropic(apiKey: string, model: string, b64: string): Promise<un
   );
   const toolUse = msg.content?.find((c: any) => c.type === 'tool_use');
   if (!toolUse) throw new Error('Claude nevrátil strukturovaná data.');
-  return toolUse.input;
+  const u = msg.usage ?? {};
+  return {
+    data: toolUse.input,
+    usage: {
+      inputTokens: (u.input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0),
+      outputTokens: u.output_tokens ?? 0,
+    },
+  };
 }
 
-async function openai(apiKey: string, model: string, b64: string): Promise<unknown> {
+async function openai(apiKey: string, model: string, b64: string): Promise<RawResult> {
   const r = await postJson(
     'https://api.openai.com/v1/chat/completions',
     { Authorization: `Bearer ${apiKey}` },
@@ -91,10 +109,14 @@ async function openai(apiKey: string, model: string, b64: string): Promise<unkno
   );
   const content = r.choices?.[0]?.message?.content;
   if (!content) throw new Error('OpenAI nevrátil data.');
-  return JSON.parse(content);
+  return {
+    data: JSON.parse(content),
+    // completion_tokens už obsahuje i reasoning tokeny
+    usage: { inputTokens: r.usage?.prompt_tokens ?? 0, outputTokens: r.usage?.completion_tokens ?? 0 },
+  };
 }
 
-async function gemini(apiKey: string, model: string, b64: string): Promise<unknown> {
+async function gemini(apiKey: string, model: string, b64: string): Promise<RawResult> {
   const r = await postJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     { 'x-goog-api-key': apiKey },
@@ -112,7 +134,15 @@ async function gemini(apiKey: string, model: string, b64: string): Promise<unkno
   );
   const text = r.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? '').join('');
   if (!text) throw new Error('Gemini nevrátil data.');
-  return JSON.parse(text);
+  const u = r.usageMetadata ?? {};
+  return {
+    data: JSON.parse(text),
+    // „thoughts“ se u Gemini účtují jako výstup, ale hlásí se zvlášť
+    usage: {
+      inputTokens: u.promptTokenCount ?? 0,
+      outputTokens: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0),
+    },
+  };
 }
 
 /** Doplní chybějící pole, aby zbytek aplikace mohl počítat s pevným tvarem. */
@@ -144,8 +174,9 @@ function normalize(raw: any): DokladData {
  */
 export async function extractDoklad(
   provider: AiProvider, apiKey: string, model: string, jpegBase64: string,
-): Promise<DokladData> {
+): Promise<{ data: DokladData; usage: AiUsage }> {
   if (!apiKey) throw new Error('Chybí API klíč pro AI — doplňte ho v Nastavení.');
   const call = { anthropic, openai, gemini }[provider];
-  return normalize(await call(apiKey, model, jpegBase64));
+  const r = await call(apiKey, model, jpegBase64);
+  return { data: normalize(r.data), usage: r.usage };
 }

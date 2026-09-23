@@ -10,6 +10,7 @@ import { updateRow } from '../google';
 import { getSettings } from '../settings';
 import { periodKey, periodLabel } from '../period';
 import { colors, fmtKc } from '../theme';
+import { fmtCzkSmall } from '../ai/pricing';
 
 function Field({
   label, value, onChange, flagged, keyboard,
@@ -158,6 +159,15 @@ export default function ReviewScreen({ doklad, onClose }: { doklad: Doklad; onCl
             {data.poznamka_extrakce ? (
               <Text style={styles.note}>Poznámka AI: {data.poznamka_extrakce}</Text>
             ) : null}
+            {doc.aiUsage && (
+              <Text style={styles.usage}>
+                Přečetl {doc.aiProvider?.split('/')[1] ?? 'AI'} ·{' '}
+                {doc.aiUsage.inputTokens.toLocaleString('cs-CZ')} + {doc.aiUsage.outputTokens.toLocaleString('cs-CZ')} tokenů
+                {doc.aiUsage.costCzk != null
+                  ? ` · ${fmtCzkSmall(doc.aiUsage.costCzk)} (kurz ČNB ${doc.aiUsage.usdCzk.toLocaleString('cs-CZ', { maximumFractionDigits: 3 })} Kč/USD)`
+                  : ' · cena modelu není v ceníku'}
+              </Text>
+            )}
           </>
         )}
       </ScrollView>
@@ -201,6 +211,7 @@ const styles = StyleSheet.create({
   inputWarn: { borderColor: colors.warn, backgroundColor: colors.warnBg },
   dph: { color: colors.text, marginBottom: 4 },
   note: { color: colors.muted, marginTop: 8, fontStyle: 'italic' },
+  usage: { color: colors.muted, marginTop: 12, fontSize: 13 },
   actions: {
     flexDirection: 'row', padding: 16, gap: 12,
     borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card,

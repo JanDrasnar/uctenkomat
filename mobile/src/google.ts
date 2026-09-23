@@ -103,6 +103,7 @@ export const SHEET_HEADER = [
   'Dodavatel', 'IČO', 'DIČ', 'Adresa', 'VS', 'Měna',
   'Základ 21 %', 'DPH 21 %', 'Základ 12 %', 'DPH 12 %', 'Základ 0 %',
   'Celkem', 'Ke kontrole', 'ARES ověřeno', 'Foto', 'Odesláno účetní', 'Období', 'AI',
+  'Tokeny vstup', 'Tokeny výstup', 'Cena AI (Kč)',
 ];
 
 function columnLetter(n: number): string {
@@ -288,6 +289,11 @@ export async function updateRow(row: number, values: SheetCell[]): Promise<void>
       body: JSON.stringify({ values: [values.map((v) => v ?? '')] }),
     },
   );
+}
+
+/** Přepíše hlavičku (když přibudou sloupce, starší tabulky ji mají kratší). */
+export async function updateHeader(): Promise<void> {
+  await updateRow(1, SHEET_HEADER);
 }
 
 // ---------------------------------------------------------------------------

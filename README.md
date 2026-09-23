@@ -41,7 +41,13 @@ Každý uživatel se přihlašuje vlastním Google účtem a má vlastní tabulk
 
 ID · Přidáno · Typ · Datum vystavení / DUZP · Splatnost · Číslo dokladu · Dodavatel · IČO · DIČ ·
 Adresa · VS · Měna · Základ 21 % · DPH 21 % · Základ 12 % · DPH 12 % · Základ 0 % · Celkem ·
-Ke kontrole · ARES ověřeno · Foto (odkaz na Disk) · Odesláno účetní · Období · AI
+Ke kontrole · ARES ověřeno · Foto (odkaz na Disk) · Odesláno účetní · Období · AI ·
+Tokeny vstup · Tokeny výstup · Cena AI (Kč)
+
+**Náklady na AI** se měří z odpovědi poskytovatele (skutečné tokeny, u Gemini/OpenAI včetně
+„přemýšlení“), cena se spočítá podle ceníku v `mobile/src/ai/pricing.ts` a přepočte denním
+kurzem ČNB. Aplikace ukazuje cenu u každého dokladu a souhrn za aktuální měsíc; u Gemini
+na free tieru jde o ceníkovou cenu, reálně se neplatí nic.
 
 Sloupec **Foto** obsahuje přímý odkaz na fotku na Google Disku. Složku „Účtenkomat“
 (fotky i tabulku) aplikace nasdílí účetní jen pro čtení — při uložení e‑mailu účetní

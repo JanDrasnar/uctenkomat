@@ -11,8 +11,9 @@ import type { Doklad, DokladData } from './types';
 import { extractDoklad } from './ai/extract';
 import { lookupIco } from './ares';
 import {
-  appendRow, sendMail, shareFolderWith, updateRow, uploadPhoto, type SheetCell,
+  appendRow, getSetup, sendMail, shareFolderWith, updateHeader, updateRow, uploadPhoto, type SheetCell,
 } from './google';
+import { costUsd, usdCzkRate } from './ai/pricing';
 import { addDoklad, getDoklad, listDoklady, updateDoklad } from './store';
 import { getApiKey, getSettings, modelFor } from './settings';
 import { periodKey, periodLabel } from './period';
@@ -56,19 +57,21 @@ export async function addPhoto(uri: string, width?: number, height?: number): Pr
   return id;
 }
 
-const LINK_FIX_KEY = 'uctenkomat.migrace.odkazyFoto';
+// Zvyš při každé změně sloupců/formátu tabulky — při startu se pak přepíše
+// hlavička i všechny řádky. v2: čisté URL ve Foto (dřív HYPERLINK → #ERROR!
+// v české tabulce), v3: sloupce se spotřebou a cenou AI.
+const SHEET_VERSION = 3;
+const SHEET_VERSION_KEY = 'uctenkomat.sheetVersion';
 
-/**
- * Jednorázová oprava: starší verze psala do sloupce Foto vzorec HYPERLINK,
- * který v české tabulce končil #ERROR!. Přepíše řádky na čisté URL.
- */
-export async function repairSheetLinks() {
-  if (await AsyncStorage.getItem(LINK_FIX_KEY)) return;
+export async function migrateSheet() {
+  if (Number(await AsyncStorage.getItem(SHEET_VERSION_KEY)) >= SHEET_VERSION) return;
   try {
+    if (!(await getSetup())) return; // tabulka ještě neexistuje — vznikne rovnou nová
+    await updateHeader();
     for (const d of await listDoklady()) {
       if (d.sheetRow && d.data) await updateRow(d.sheetRow, sheetRowValues(d));
     }
-    await AsyncStorage.setItem(LINK_FIX_KEY, '1');
+    await AsyncStorage.setItem(SHEET_VERSION_KEY, String(SHEET_VERSION));
   } catch {
     // nepřihlášen / offline — zkusí se při dalším startu
   }
@@ -111,6 +114,7 @@ export function sheetRowValues(doc: Doklad): SheetCell[] {
     dph(doc, 0, 'zaklad'), d.castka_celkem, d.pole_ke_kontrole.join(', '),
     d.ares_overeno ? 'ano' : 'ne', photo, doc.sentAt ? doc.sentAt.slice(0, 16).replace('T', ' ') : '',
     periodLabel(doc.period), doc.aiProvider ?? '',
+    doc.aiUsage?.inputTokens ?? '', doc.aiUsage?.outputTokens ?? '', doc.aiUsage?.costCzk ?? '',
   ];
 }
 
@@ -168,7 +172,10 @@ export async function processDoklad(id: string): Promise<void> {
     if (!doc.data) {
       await step('Čtu doklad pomocí AI…');
       const apiKey = await getApiKey(settings.aiProvider);
-      const data = await extractDoklad(settings.aiProvider, apiKey, modelFor(settings), await aiImageBase64(doc));
+      const model = modelFor(settings);
+      const { data, usage } = await extractDoklad(settings.aiProvider, apiKey, model, await aiImageBase64(doc));
+      const usd = costUsd(model, usage);
+      const rate = await usdCzkRate();
 
       const ares = await lookupIco(data.dodavatel.ico);
       if (ares) {
@@ -180,7 +187,13 @@ export async function processDoklad(id: string): Promise<void> {
       doc = (await updateDoklad(id, {
         data,
         period: periodKey(data.datum_vystaveni, settings.periodType),
-        aiProvider: `${settings.aiProvider}/${modelFor(settings)}`,
+        aiProvider: `${settings.aiProvider}/${model}`,
+        aiUsage: {
+          ...usage,
+          costUsd: usd,
+          costCzk: usd == null ? null : Math.round(usd * rate * 1000) / 1000,
+          usdCzk: rate,
+        },
       }))!;
     }
 

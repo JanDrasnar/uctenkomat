@@ -45,6 +45,16 @@ export interface Doklad {
   /** Vyplní AI; null dokud extrakce neproběhla. */
   data: DokladData | null;
   aiProvider?: string;
+  /** Skutečná spotřeba AI podle odpovědi poskytovatele. */
+  aiUsage?: {
+    inputTokens: number;
+    outputTokens: number;
+    /** null = model není v ceníku (src/ai/pricing.ts) */
+    costUsd: number | null;
+    costCzk: number | null;
+    /** kurz ČNB použitý pro přepočet */
+    usdCzk: number;
+  };
   driveFileId?: string;
   driveLink?: string;
   /** Číslo řádku v Google tabulce (1 = hlavička). */
