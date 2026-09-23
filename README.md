@@ -43,6 +43,10 @@ ID · Přidáno · Typ · Datum vystavení / DUZP · Splatnost · Číslo doklad
 Adresa · VS · Měna · Základ 21 % · DPH 21 % · Základ 12 % · DPH 12 % · Základ 0 % · Celkem ·
 Ke kontrole · ARES ověřeno · Foto (odkaz na Disk) · Odesláno účetní · Období · AI
 
+Sloupec **Foto** obsahuje přímý odkaz na fotku na Google Disku. Složku „Účtenkomat“
+(fotky i tabulku) aplikace nasdílí účetní jen pro čtení — při uložení e‑mailu účetní
+v Nastavení nebo nejpozději s prvním odeslaným dokladem. Google jí pošle pozvánku.
+
 Oprava údajů v aplikaci přepíše příslušný řádek; u už odeslaného dokladu aplikace nabídne
 poslat účetní opravu.
 
@@ -80,16 +84,20 @@ uctenkomat/
 `gmail.send` umí jen odesílat, ne číst poštu. Pro veřejné vydání (nad 100 uživatelů)
 Google u `gmail.send` vyžaduje ověření aplikace.
 
-### 2. Build aplikace
+### 2. Testovací APK
 
-Google přihlášení je nativní modul, takže aplikace **neběží v Expo Go** — je potřeba
-development build:
+GitHub Actions (`.github/workflows/android-apk.yml`) při každé změně v `mobile/` sestaví APK
+a vystaví ho jako release **test-build**:
+https://github.com/JanDrasnar/uctenkomat/releases/download/test-build/uctenkomat.apk
+— stáhnout v telefonu a nainstalovat. Build je podepsaný debug klíčem z Expo šablony,
+v kroku 4 výše použijte SHA‑1 `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`.
+
+Lokální vývoj (aplikace kvůli Google přihlášení **neběží v Expo Go**):
 
 ```bash
 cd mobile
 npm install
-npx eas-cli build -p android --profile development   # nebo: npx expo run:android
-npx expo start --dev-client
+npx expo run:android
 ```
 
 ### 3. V aplikaci

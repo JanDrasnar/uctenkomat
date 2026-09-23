@@ -94,6 +94,8 @@ interface GoogleSetup {
   folderId: string;
   spreadsheetId: string;
   spreadsheetUrl: string;
+  /** E-maily, se kterými už je složka sdílená (účetní). */
+  sharedWith?: string[];
 }
 
 export const SHEET_HEADER = [
@@ -168,14 +170,18 @@ export async function ensureSetup(): Promise<GoogleSetup> {
   if (!setupPromise) {
     setupPromise = (async () => {
       const s = await createSetup();
-      const email = currentGoogleEmail();
-      if (email) await AsyncStorage.setItem(setupKey(email), JSON.stringify(s));
+      await storeSetup(s);
       return s;
     })().finally(() => {
       setupPromise = null;
     });
   }
   return setupPromise;
+}
+
+async function storeSetup(s: GoogleSetup) {
+  const email = currentGoogleEmail();
+  if (email) await AsyncStorage.setItem(setupKey(email), JSON.stringify(s));
 }
 
 async function forgetSetup() {
@@ -221,6 +227,28 @@ export async function uploadPhoto(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',
       { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body },
     );
+  });
+}
+
+/**
+ * Nasdílí složku Účtenkomat (fotky + tabulka) účetní jen pro čtení, aby jí
+ * fungovaly odkazy na fotky z tabulky i z e-mailu. Každou adresu jen jednou.
+ */
+export async function shareFolderWith(accountantEmail: string): Promise<void> {
+  const email = accountantEmail.trim().toLowerCase();
+  if (!email) return;
+  await withSetup(async (s) => {
+    if (s.sharedWith?.includes(email)) return;
+    await gfetch(
+      `https://www.googleapis.com/drive/v3/files/${s.folderId}/permissions` +
+        `?sendNotificationEmail=true&emailMessage=${encodeURIComponent('Sdílím s vámi složku s doklady z aplikace Účtenkomat.')}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'user', role: 'reader', emailAddress: email }),
+      },
+    );
+    await storeSetup({ ...s, sharedWith: [...(s.sharedWith ?? []), email] });
   });
 }
 

@@ -4,12 +4,15 @@
 //
 // Každý krok si výsledek uloží do záznamu, takže přerušené zpracování
 // (zavřená aplikace, výpadek sítě) lze bezpečně navázat tam, kde skončilo.
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import type { Doklad, DokladData } from './types';
 import { extractDoklad } from './ai/extract';
 import { lookupIco } from './ares';
-import { appendRow, sendMail, updateRow, uploadPhoto, type SheetCell } from './google';
+import {
+  appendRow, sendMail, shareFolderWith, updateRow, uploadPhoto, type SheetCell,
+} from './google';
 import { addDoklad, getDoklad, listDoklady, updateDoklad } from './store';
 import { getApiKey, getSettings, modelFor } from './settings';
 import { periodKey, periodLabel } from './period';
@@ -53,6 +56,24 @@ export async function addPhoto(uri: string, width?: number, height?: number): Pr
   return id;
 }
 
+const LINK_FIX_KEY = 'uctenkomat.migrace.odkazyFoto';
+
+/**
+ * Jednorázová oprava: starší verze psala do sloupce Foto vzorec HYPERLINK,
+ * který v české tabulce končil #ERROR!. Přepíše řádky na čisté URL.
+ */
+export async function repairSheetLinks() {
+  if (await AsyncStorage.getItem(LINK_FIX_KEY)) return;
+  try {
+    for (const d of await listDoklady()) {
+      if (d.sheetRow && d.data) await updateRow(d.sheetRow, sheetRowValues(d));
+    }
+    await AsyncStorage.setItem(LINK_FIX_KEY, '1');
+  } catch {
+    // nepřihlášen / offline — zkusí se při dalším startu
+  }
+}
+
 /** Naváže zpracování všech nedokončených dokladů (po startu aplikace). */
 export async function resumePending() {
   for (const d of await listDoklady()) {
@@ -79,7 +100,9 @@ export function sheetRowValues(doc: Doklad): SheetCell[] {
   const d = doc.data!;
   // Apostrof = text (jinak by Sheets z IČO "01234567" udělal číslo 1234567).
   const txt = (v: string | null | undefined) => (v ? `'${v}` : '');
-  const photo = doc.driveLink ? `=HYPERLINK("${doc.driveLink}","Foto")` : '';
+  // Čistá URL — Sheets ji sám zobrazí jako odkaz. (Vzorec HYPERLINK by závisel
+  // na národním prostředí tabulky: v cs_CZ se argumenty oddělují středníkem.)
+  const photo = doc.driveLink ?? '';
   return [
     doc.id, doc.createdAt.slice(0, 10), d.typ_dokladu, d.datum_vystaveni, d.datum_splatnosti ?? '',
     txt(d.cislo_dokladu), d.dodavatel?.nazev ?? '', txt(d.dodavatel?.ico), d.dodavatel?.dic ?? '',
@@ -107,9 +130,19 @@ function summary(d: DokladData): string {
   ].filter(Boolean).join('\n');
 }
 
+/** Sdílení složky nesmí zablokovat odeslání — fotka je i v příloze e-mailu. */
+async function shareWithAccountant(email: string) {
+  try {
+    await shareFolderWith(email);
+  } catch (e) {
+    console.warn('Sdílení složky s účetní selhalo:', e);
+  }
+}
+
 /** Odešle jeden doklad účetní (fotka v příloze + údaje v textu). */
 export async function sendSingle(doc: Doklad, to: string, correction = false): Promise<Doklad> {
   const d = doc.data!;
+  await shareWithAccountant(to);
   const photo = await new File(doc.photoUri).base64();
   await sendMail({
     to,
@@ -197,6 +230,7 @@ export async function sendPeriod(period: string): Promise<number> {
     .filter((d) => d.period === period && d.status === 'hotovo' && !d.sentAt)
     .reverse();
   if (!docs.length) return 0;
+  await shareWithAccountant(settings.accountantEmail);
 
   const attachments = [];
   const linksOnly: Doklad[] = [];

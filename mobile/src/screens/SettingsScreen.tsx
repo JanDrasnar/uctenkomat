@@ -7,7 +7,7 @@ import {
   type AiProvider, type AppSettings,
 } from '../settings';
 import {
-  currentGoogleEmail, getSetup, signInGoogle, signOutGoogle,
+  currentGoogleEmail, getSetup, shareFolderWith, signInGoogle, signOutGoogle,
 } from '../google';
 import { colors } from '../theme';
 
@@ -82,6 +82,10 @@ export default function SettingsScreen({ onClose }: { onClose: () => void }) {
     try {
       await saveSettings(s!);
       for (const p of AI_PROVIDERS) await setApiKey(p.id, keys[p.id] ?? '');
+      // Účetní dostane přístup ke složce s fotkami hned, ne až s dalším dokladem.
+      if (email && currentGoogleEmail()) {
+        shareFolderWith(email).catch((e) => console.warn('Sdílení složky selhalo:', e));
+      }
       onClose();
     } finally {
       setSaving(false);
@@ -163,7 +167,8 @@ export default function SettingsScreen({ onClose }: { onClose: () => void }) {
         <Text style={styles.section}>Google účet</Text>
         <Text style={styles.hint}>
           Fotky se ukládají do složky „Účtenkomat“ na vašem Google Disku, údaje do Google tabulky
-          a e-mail účetní odchází z vašeho Gmailu.
+          s odkazem na fotku a e-mail účetní odchází z vašeho Gmailu. Složku aplikace nasdílí
+          účetní (jen pro čtení), aby jí odkazy na fotky fungovaly.
         </Text>
         {googleEmail ? (
           <>
