@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ochrana osobních údajů – Účtenkomat</title>
+<meta name="description" content="Jak aplikace Účtenkomat zachází s vašimi údaji a s daty z Google účtu.">
+<link rel="stylesheet" href="_style.css">
+</head>
+<body>
+<main>
+  <nav><a href="index.html">Účtenkomat</a><a href="ochrana-soukromi.html">Ochrana osobních údajů</a><a href="privacy.html">Privacy policy (EN)</a></nav>
+  <h1>Zásady ochrany osobních údajů</h1>
+  <p class="lead">Aplikace Účtenkomat pro Android · platné od 23. 9. 2026</p>
+
+  <h2>1. Kdo aplikaci provozuje</h2>
+  <p>Provozovatel: <strong>[JMÉNO / FIRMA, IČO]</strong>, kontakt: <strong>[KONTAKTNÍ E‑MAIL]</strong>.</p>
+
+  <h2>2. Stručně</h2>
+  <div class="card">
+    <ul>
+      <li>Aplikace <strong>nemá vlastní server</strong>. Provozovatel k vašim dokladům ani údajům nemá přístup.</li>
+      <li>Doklady se ukládají <strong>do vašeho Google Disku a Google tabulky</strong> a v telefonu.</li>
+      <li>Fotka dokladu se posílá ke čtení <strong>AI službě, kterou si sami zvolíte</strong> a pro kterou zadáte vlastní klíč.</li>
+      <li>Nic neprodáváme, nepoužíváme k reklamě ani ke sledování.</li>
+    </ul>
+  </div>
+
+  <h2>3. Jaké údaje aplikace zpracovává</h2>
+  <ul>
+    <li><strong>Google účet</strong> — jméno a e‑mail pro přihlášení.</li>
+    <li><strong>Fotky dokladů a údaje z nich</strong> — dodavatel, IČO, DIČ, adresa, data, částky, DPH, variabilní symbol. U dokladů od fyzických osob (OSVČ) jde o jejich osobní údaje.</li>
+    <li><strong>E‑mail účetní</strong> a nastavení aplikace — uložené v telefonu.</li>
+    <li><strong>API klíče AI služeb</strong> — uložené šifrovaně v telefonu (Android Keystore), nikam se neodesílají kromě dané AI služby.</li>
+    <li><strong>Spotřeba AI</strong> — počet tokenů a cena u každého dokladu.</li>
+  </ul>
+
+  <h2>4. Jak aplikace používá data z Google účtu</h2>
+  <ul>
+    <li><strong>Google Disk a Tabulky</strong> (oprávnění <code>drive.file</code>): aplikace vytvoří složku „Účtenkomat“ a tabulku, nahrává do nich fotky a zapisuje údaje z dokladů. Vidí jen soubory, které sama vytvořila; ke zbytku Disku přístup nemá. Složku může na váš pokyn sdílet s účetní (jen pro čtení) a s kolegy ve firmě.</li>
+    <li><strong>Gmail</strong> (oprávnění <code>gmail.send</code>): aplikace odesílá doklady na e‑mail účetní, který zadáte. Poštu nečte, nemaže ani neprohledává.</li>
+  </ul>
+  <p>Využití a předávání informací získaných z Google API se řídí zásadami
+    <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, včetně požadavků Limited Use. Data z Google účtu se nepoužívají k reklamě ani k trénování AI modelů a nepředávají se nikomu kromě případů uvedených níže, které spouštíte vy.</p>
+
+  <h2>5. Komu se údaje předávají</h2>
+  <ul>
+    <li><strong>Zvolená AI služba</strong> — Anthropic (Claude), OpenAI nebo Google (Gemini) dostane fotku dokladu ke čtení a vrátí údaje. Zpracování se řídí podmínkami dané služby a vaší smlouvou s ní (používáte vlastní klíč). Upozornění: bezplatná úroveň Google Gemini může data použít ke zlepšování služeb Google; pro firemní použití doporučujeme placenou úroveň.</li>
+    <li><strong>ARES</strong> (Ministerstvo financí ČR) — dotaz na IČO dodavatele pro ověření názvu a adresy.</li>
+    <li><strong>ČNB</strong> — stažení kurzovního lístku (žádné osobní údaje).</li>
+    <li><strong>Vaše účetní a kolegové</strong> — e‑mailem a sdílením složky, když to nastavíte.</li>
+  </ul>
+
+  <h2>6. Jak dlouho údaje uchováváme</h2>
+  <p>Údaje v Google Disku, Tabulkách a Gmailu zůstávají, dokud je sami nesmažete. Údaje v telefonu se smažou odinstalováním aplikace. Přístup aplikace ke Google účtu můžete kdykoli zrušit na
+    <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>. Pamatujte, že účetní doklady je podle zákona potřeba archivovat (obvykle 5–10 let).</p>
+
+  <h2>7. Zabezpečení</h2>
+  <p>Veškerá komunikace probíhá šifrovaně (HTTPS). API klíče jsou uložené v šifrovaném úložišti telefonu.</p>
+
+  <h2>8. Vaše práva</h2>
+  <p>Podle GDPR máte právo na přístup, opravu, výmaz, omezení zpracování, přenositelnost a námitku. Protože data máte ve vlastním Google účtu, většinu z nich uplatníte přímo tam. S dotazy se obraťte na kontakt výše. Stížnost můžete podat u Úřadu pro ochranu osobních údajů (<a href="https://uoou.gov.cz">uoou.gov.cz</a>).</p>
+
+  <h2>9. Děti</h2>
+  <p>Aplikace je určena podnikatelům a není určena osobám mladším 18 let.</p>
+
+  <h2>10. Změny</h2>
+  <p>Změny těchto zásad zveřejníme na této stránce s novým datem platnosti.</p>
+
+  <footer><a href="privacy.html">English version</a></footer>
+</main>
+</body>
+</html>

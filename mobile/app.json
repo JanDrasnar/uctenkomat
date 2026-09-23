@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Účtenkomat",
-    "slug": "mobile",
+    "slug": "uctenkomat",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

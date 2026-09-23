@@ -172,6 +172,12 @@ export default function SettingsScreen({
         <Pressable style={styles.wizardBtn} onPress={onRunWizard}>
           <Text style={styles.link}>Spustit průvodce nastavením znovu</Text>
         </Pressable>
+        <Pressable
+          style={styles.wizardBtn}
+          onPress={() => Linking.openURL('https://jandrasnar.github.io/uctenkomat/ochrana-soukromi.html')}
+        >
+          <Text style={styles.link}>Zásady ochrany osobních údajů ↗</Text>
+        </Pressable>
       </ScrollView>
 
       <View style={styles.actions}>

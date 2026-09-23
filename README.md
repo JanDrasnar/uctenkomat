@@ -145,6 +145,15 @@ Google Cloud projekt (krok 1 výše) zakládá jen vydavatel, jednou. Dokud je v
 video s ukázkou použití, pár dní až týdnů). Pak přihlášení proběhne bez varování
 a bez limitu 100 uživatelů.
 
+### 4. Vydání na Google Play
+
+Podrobný postup krok za krokem (upload klíč, GitHub secrets, workflow **Android release**
+→ podepsaný `.aab`, Play Console, uzavřený test 12 testerů / 14 dní, ověření u Googlu,
+texty pro obchod a Data safety): **[docs/vydani-google-play.md](docs/vydani-google-play.md)**.
+
+Web aplikace a zásady ochrany osobních údajů jsou v `docs/` (GitHub Pages):
+`index.html`, `ochrana-soukromi.html`, `privacy.html`.
+
 ## Omezení / TODO
 
 - [ ] QR Platba (SPAYD) se z obrázku nedekóduje přímo — AI jen hlásí, že na dokladu je.

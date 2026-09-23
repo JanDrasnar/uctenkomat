@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy – Účtenkomat</title>
+<meta name="description" content="How the Účtenkomat app handles your data and Google user data.">
+<link rel="stylesheet" href="_style.css">
+</head>
+<body>
+<main>
+  <nav><a href="index.html">Účtenkomat</a><a href="ochrana-soukromi.html">Ochrana osobních údajů (CZ)</a><a href="privacy.html">Privacy policy</a></nav>
+  <h1>Privacy Policy</h1>
+  <p class="lead">Účtenkomat for Android · effective 23 September 2026</p>
+
+  <h2>1. Who operates the app</h2>
+  <p>Operator: <strong>[NAME / COMPANY, ID]</strong>, contact: <strong>[CONTACT E‑MAIL]</strong>.</p>
+
+  <h2>2. Summary</h2>
+  <div class="card">
+    <ul>
+      <li>The app has <strong>no server of its own</strong>. The operator has no access to your receipts or data.</li>
+      <li>Receipts are stored <strong>in your own Google Drive and Google Sheet</strong> and on your phone.</li>
+      <li>The receipt photo is sent for reading to <strong>the AI service you choose</strong>, using your own API key.</li>
+      <li>We do not sell data, use it for advertising or track you.</li>
+    </ul>
+  </div>
+
+  <h2>3. Data the app processes</h2>
+  <ul>
+    <li><strong>Google account</strong> — name and e‑mail for sign-in.</li>
+    <li><strong>Receipt photos and data read from them</strong> — supplier, company and VAT IDs, address, dates, amounts, VAT, payment reference.</li>
+    <li><strong>Accountant's e‑mail</strong> and app settings — stored on the phone.</li>
+    <li><strong>AI service API keys</strong> — stored encrypted on the phone (Android Keystore), sent only to that AI service.</li>
+    <li><strong>AI usage</strong> — token counts and cost per receipt.</li>
+  </ul>
+
+  <h2>4. How the app uses Google user data</h2>
+  <ul>
+    <li><strong>Google Drive and Sheets</strong> (<code>drive.file</code> scope): the app creates an “Účtenkomat” folder and spreadsheet, uploads receipt photos and writes receipt data. It can only access files it created itself, not the rest of your Drive. At your request it shares the folder with your accountant (view only) and with colleagues in your company.</li>
+    <li><strong>Gmail</strong> (<code>gmail.send</code> scope): the app sends receipts to the accountant's address you enter. It does not read, delete or search your mail.</li>
+  </ul>
+  <p>Účtenkomat's use and transfer of information received from Google APIs to any other app will adhere to the
+    <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements. Google user data is not used for advertising or to train AI models, and is not transferred to anyone except as described below at your direction.</p>
+
+  <h2>5. Who receives data</h2>
+  <ul>
+    <li><strong>The AI service you choose</strong> — Anthropic (Claude), OpenAI or Google (Gemini) receives the receipt photo and returns the extracted data, under that service's terms and your own agreement with it (you use your own key). Note: the free tier of Google Gemini may use data to improve Google's services; we recommend the paid tier for business use.</li>
+    <li><strong>ARES</strong> (Czech Ministry of Finance business register) — lookup of the supplier's company ID.</li>
+    <li><strong>Czech National Bank</strong> — download of the daily exchange rate (no personal data).</li>
+    <li><strong>Your accountant and colleagues</strong> — by e‑mail and folder sharing, when you set this up.</li>
+  </ul>
+
+  <h2>6. Retention</h2>
+  <p>Data in your Google Drive, Sheets and Gmail stays until you delete it. Data on the phone is deleted when you uninstall the app. You can revoke the app's access to your Google account at any time at
+    <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
+
+  <h2>7. Security</h2>
+  <p>All communication is encrypted (HTTPS). API keys are kept in the phone's encrypted storage.</p>
+
+  <h2>8. Your rights</h2>
+  <p>Under the GDPR you have the right of access, rectification, erasure, restriction, portability and objection. Because the data is in your own Google account, you can exercise most of them there directly. For questions, use the contact above. You may lodge a complaint with the Czech Office for Personal Data Protection (<a href="https://uoou.gov.cz">uoou.gov.cz</a>).</p>
+
+  <h2>9. Children</h2>
+  <p>The app is intended for businesses and is not directed at persons under 18.</p>
+
+  <h2>10. Changes</h2>
+  <p>Changes to this policy will be published on this page with a new effective date.</p>
+
+  <footer><a href="ochrana-soukromi.html">Česká verze</a></footer>
+</main>
+</body>
+</html>
