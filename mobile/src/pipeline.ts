@@ -11,7 +11,8 @@ import type { Doklad, DokladData } from './types';
 import { extractDoklad } from './ai/extract';
 import { lookupIco } from './ares';
 import {
-  appendRow, getPersonalSetup, sendMail, shareFolderWith, updateHeader, updateRow, uploadPhoto,
+  appendRow, getPersonalSetup, sendMail, shareFolderWith, spreadsheetUrl, updateHeader, updateRow,
+  uploadPhoto,
   type SheetCell,
 } from './google';
 import { costUsd, usdCzkRate } from './ai/pricing';
@@ -172,7 +173,11 @@ export async function sendSingle(doc: Doklad, to: string, correction = false): P
     to,
     subject: `${correction ? 'Oprava: ' : ''}Doklad ${d.dodavatel?.nazev ?? ''} ${d.datum_vystaveni ?? ''} – ${fmtKc(d.castka_celkem)}`.trim(),
     text: `Dobrý den,\n\nv příloze posílám ${correction ? 'opravený ' : ''}doklad.\n\n${summary(d)}\n\n` +
-      (doc.driveLink ? `Originál na Google Disku: ${doc.driveLink}\n\n` : '') +
+      (doc.driveLink ? `Originál na Google Disku: ${doc.driveLink}\n` : '') +
+      (doc.sheetId
+        ? `Evidence v Google tabulce${doc.sheetRow ? ` (řádek ${doc.sheetRow})` : ''}: ${spreadsheetUrl(doc.sheetId)}\n`
+        : '') +
+      (doc.driveLink || doc.sheetId ? '\n' : '') +
       'Odesláno z aplikace Účtenkomat.',
     attachments: [{ filename: photoName(doc), mimeType: 'image/jpeg', base64: photo }],
   });
@@ -284,11 +289,16 @@ export async function sendPeriod(period: string): Promise<number> {
   });
 
   const total = docs.reduce((s, d) => s + (d.data?.castka_celkem ?? 0), 0);
+  // Doklady jednoho období můžou být v osobní i firemní tabulce (přechod do firmy).
+  const sheetIds = [...new Set(docs.map((d) => d.sheetId).filter((x): x is string => !!x))];
   await sendMail({
     to: settings.accountantEmail,
     subject: `Doklady za ${periodLabel(period)} (${docs.length})`,
     text: `Dobrý den,\n\nposílám doklady za ${periodLabel(period)}: ${docs.length} ks, celkem ${fmtKc(total)}.\n` +
       'Přehled je v přiloženém CSV, fotky dokladů jsou v přílohách.\n' +
+      (sheetIds.length
+        ? `\nEvidence v Google tabulce:\n${sheetIds.map((sid) => `- ${spreadsheetUrl(sid)}`).join('\n')}\n`
+        : '') +
       (linksOnly.length
         ? `\nNěkteré fotky se nevešly do přílohy, jsou na Google Disku:\n${linksOnly.map((d) => `- ${d.data?.dodavatel?.nazev ?? d.id}: ${d.driveLink}`).join('\n')}\n`
         : '') +

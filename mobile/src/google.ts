@@ -294,6 +294,11 @@ export async function shareFolderWith(accountantEmail: string): Promise<void> {
 // ---------------------------------------------------------------------------
 // Sheets
 
+/** Odkaz na tabulku pro lidi (účetní ji vidí díky sdílené složce). */
+export function spreadsheetUrl(spreadsheetId: string): string {
+  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+}
+
 export type SheetCell = string | number | boolean | null;
 
 /** Přidá řádek a vrátí jeho číslo a tabulku, do které se zapsal. */
